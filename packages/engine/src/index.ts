@@ -42,6 +42,13 @@ export class GameEngine {
     }
   }
 
+  loadTokens(tokens: TokenState[]): void {
+    this.tokens.clear();
+    tokens.forEach((token) => {
+      this.tokens.set(token.id, { ...token });
+    });
+  }
+
   getTokens(): TokenState[] {
     return Array.from(this.tokens.values());
   }

@@ -1,6 +1,7 @@
 import { createSignal, onCleanup, onMount } from 'solid-js';
 import { engine } from '@aethel/engine';
 import type { TokenState } from '@aethel/shared';
+import { connectToRoom, pushTokensToYjs, onYjsChange, syncProvider } from './sync';
 
 interface ChatMessage {
   id: number;
@@ -39,39 +40,56 @@ export function App() {
   const CANVAS_H = 400;
 
   onMount(() => {
-    const unsubscribe = engine.onUpdate(() => {
-      setTokens(engine.getTokens());
+    // Подключаемся к WebSocket-серверу
+    connectToRoom('test-room');
+
+    // Локальные изменения → Yjs
+    const unsubEngine = engine.onUpdate((updatedTokens) => {
+      pushTokensToYjs(updatedTokens);
+    });
+
+    // Изменения из Yjs → engine (без notify) + UI
+    const unsubYjs = onYjsChange((yjsTokens) => {
+      if (yjsTokens.length === 0) return;
+      engine.loadTokens(yjsTokens);
+      setTokens(yjsTokens);
       drawCanvas();
     });
 
-    engine.addToken({
-      id: 'hero-1',
-      position: { x: 200, y: 200 },
-      rotation: 0,
-      hidden: false,
-      conditions: [],
-      hp: 45,
-      maxHp: 52,
-      ownerId: 'player-1',
-      lockedBy: null,
-    });
+    // Стартовые токены (только если комната пуста)
+    if (engine.getTokens().length === 0) {
+      engine.addToken({
+        id: 'hero-1',
+        position: { x: 200, y: 200 },
+        rotation: 0,
+        hidden: false,
+        conditions: [],
+        hp: 45,
+        maxHp: 52,
+        ownerId: 'player-1',
+        lockedBy: null,
+      });
 
-    engine.addToken({
-      id: 'goblin-1',
-      position: { x: 400, y: 150 },
-      rotation: 0,
-      hidden: false,
-      conditions: [],
-      hp: 7,
-      maxHp: 7,
-      ownerId: null,
-      lockedBy: null,
-    });
+      engine.addToken({
+        id: 'goblin-1',
+        position: { x: 400, y: 150 },
+        rotation: 0,
+        hidden: false,
+        conditions: [],
+        hp: 7,
+        maxHp: 7,
+        ownerId: null,
+        lockedBy: null,
+      });
+    }
 
+    setTokens(engine.getTokens());
     drawCanvas();
 
     onCleanup(() => {
-      unsubscribe();
+      unsubEngine();
+      unsubYjs();
+      syncProvider?.disconnect();
     });
   });
 
@@ -179,16 +197,11 @@ export function App() {
     if (token) {
       const list = engine.getTokens();
       const idx = list.findIndex((t) => t.id === token.id);
-      if (idx >= 0) {
-        setActiveIndex(idx);
-      }
+      if (idx >= 0) setActiveIndex(idx);
     }
   };
 
-  const hpPercent = (token: TokenState) => {
-    return Math.round((token.hp / token.maxHp) * 100);
-  };
-
+  const hpPercent = (token: TokenState) => Math.round((token.hp / token.maxHp) * 100);
   const hpColor = (token: TokenState) => {
     const pct = hpPercent(token);
     if (pct > 50) return '#4ecca3';
@@ -201,26 +214,14 @@ export function App() {
     if (list.length === 0) return;
     setActiveIndex((prev) => (prev + 1) % list.length);
   };
-
-  const selectToken = (index: number) => {
-    setActiveIndex(index);
-  };
-
+  const selectToken = (index: number) => setActiveIndex(index);
   const activeToken = () => {
     const list = tokens();
     if (list.length === 0) return undefined;
     return list[activeIndex()];
   };
-
-  const damageActive = () => {
-    const token = activeToken();
-    if (token) engine.damageToken(token.id, 5);
-  };
-
-  const healActive = () => {
-    const token = activeToken();
-    if (token) engine.healToken(token.id, 5);
-  };
+  const damageActive = () => { const t = activeToken(); if (t) engine.damageToken(t.id, 5); };
+  const healActive = () => { const t = activeToken(); if (t) engine.healToken(t.id, 5); };
 
   const sendMessage = () => {
     const text = inputText().trim();
@@ -245,58 +246,34 @@ export function App() {
     const name = names[Math.floor(Math.random() * names.length)];
     const id = `${name.toLowerCase()}-${Date.now()}`;
     const hp = Math.floor(Math.random() * 20) + 5;
-    engine.addToken({
-      id,
-      position: { x: 100 + Math.random() * 400, y: 100 + Math.random() * 200 },
-      rotation: 0,
-      hidden: false,
-      conditions: [],
-      hp,
-      maxHp: hp,
-      ownerId: null,
-      lockedBy: null,
-    });
+    engine.addToken({ id, position: { x: 100 + Math.random() * 400, y: 100 + Math.random() * 200 }, rotation: 0, hidden: false, conditions: [], hp, maxHp: hp, ownerId: null, lockedBy: null });
   };
 
   const searchSpell = async () => {
     const name = spellName().trim();
     if (!name) return;
-    setSpellLoading(true);
-    setSpellError('');
-    setSpellResult(null);
+    setSpellLoading(true); setSpellError(''); setSpellResult(null);
     try {
-      const response = await fetch(`https://www.dnd5eapi.co/api/spells/${name.toLowerCase().replace(/ /g, '-')}`);
-      if (!response.ok) { setSpellError('Заклинание не найдено'); setSpellLoading(false); return; }
-      const data = await response.json();
-      setSpellResult({
-        name: data.name, level: data.level, school: data.school?.name || 'Неизвестно',
-        casting_time: data.casting_time || '—', range: data.range || '—',
-        components: data.components || [], duration: data.duration || '—',
-        description: data.desc?.join('\n') || 'Нет описания',
-      });
+      const r = await fetch(`https://www.dnd5eapi.co/api/spells/${name.toLowerCase().replace(/ /g, '-')}`);
+      if (!r.ok) { setSpellError('Заклинание не найдено'); setSpellLoading(false); return; }
+      const d = await r.json();
+      setSpellResult({ name: d.name, level: d.level, school: d.school?.name || 'Неизвестно', casting_time: d.casting_time || '—', range: d.range || '—', components: d.components || [], duration: d.duration || '—', description: d.desc?.join('\n') || 'Нет описания' });
     } catch { setSpellError('Ошибка соединения с API'); }
     setSpellLoading(false);
   };
 
-  const handleSpellKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') { e.preventDefault(); searchSpell(); }
-  };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-  };
+  const handleSpellKeyDown = (e: KeyboardEvent) => { if (e.key === 'Enter') { e.preventDefault(); searchSpell(); } };
+  const handleKeyDown = (e: KeyboardEvent) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
 
   return (
     <div class="app">
       <h1>Aethel VTT</h1>
-
       <div class="layout">
         <div class="left-column">
           <div class="minimap-container">
             <canvas
               ref={(el) => (canvasRef = el)}
-              width={CANVAS_W}
-              height={CANVAS_H}
+              width={CANVAS_W} height={CANVAS_H}
               class="minimap-canvas"
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
@@ -305,59 +282,44 @@ export function App() {
               onDblClick={handleCanvasDoubleClick}
             />
           </div>
-
           <div class="tracker">
             <div class="tracker-header">
               <h2 class="tracker-title">Combat Tracker</h2>
-              <button class="next-turn-btn" onClick={nextTurn}>
-                Следующий ход →
-              </button>
+              <button class="next-turn-btn" onClick={nextTurn}>Следующий ход →</button>
             </div>
-
             <ul class="tracker-list">
-              {tokens().length === 0 && (
-                <li class="tracker-empty">Нет токенов. Добавьте первого бойца.</li>
-              )}
+              {tokens().length === 0 && <li class="tracker-empty">Нет токенов</li>}
               {tokens().map((token, index) => (
-                <li
-                  class={`tracker-item ${index === activeIndex() ? 'active' : ''}`}
-                  onClick={() => selectToken(index)}
-                >
+                <li class={`tracker-item ${index === activeIndex() ? 'active' : ''}`} onClick={() => selectToken(index)}>
                   <div class="turn-indicator">{index === activeIndex() ? '▶' : ''}</div>
-                  <button class="token-remove" onClick={(e) => { e.stopPropagation(); engine.removeToken(token.id); }} title="Удалить токен">✕</button>
+                  <button class="token-remove" onClick={(e) => { e.stopPropagation(); engine.removeToken(token.id); }}>✕</button>
                   <div class="token-icon"><div class="icon-placeholder" /></div>
                   <div class="token-info">
                     <span class="token-name">{token.id}</span>
                     {token.conditions.length > 0 && <span class="token-conditions">{token.conditions.join(', ')}</span>}
                   </div>
-                  <div class="token-hp-bar">
-                    <div class="token-hp-fill" style={{ width: `${hpPercent(token)}%`, 'background-color': hpColor(token) }} />
-                  </div>
+                  <div class="token-hp-bar"><div class="token-hp-fill" style={{ width: `${hpPercent(token)}%`, 'background-color': hpColor(token) }} /></div>
                   <span class="token-hp-text">{token.hp} / {token.maxHp}</span>
                 </li>
               ))}
             </ul>
           </div>
-
           <div class="actions">
             <button class="action-btn add" onClick={addRandomToken}>＋ Добавить токен</button>
             <button class="action-btn damage" onClick={damageActive}>⚔ Урон (5)</button>
             <button class="action-btn heal" onClick={healActive}>❤ Лечение (5)</button>
           </div>
         </div>
-
         <div class="right-column">
           <div class="compendium">
             <div class="compendium-header">
               <h2 class="compendium-title">📖 Заклинания</h2>
-              <button class="compendium-toggle" onClick={() => setShowCompendium(!showCompendium())}>
-                {showCompendium() ? 'Скрыть' : 'Поиск'}
-              </button>
+              <button class="compendium-toggle" onClick={() => setShowCompendium(!showCompendium())}>{showCompendium() ? 'Скрыть' : 'Поиск'}</button>
             </div>
             {showCompendium() && (
               <div class="compendium-body">
                 <div class="compendium-search">
-                  <input class="compendium-input" type="text" placeholder="Название заклинания (на англ.)..." value={spellName()} onInput={(e) => setSpellName(e.currentTarget.value)} onKeyDown={handleSpellKeyDown} />
+                  <input class="compendium-input" type="text" placeholder="Название (англ.)..." value={spellName()} onInput={(e) => setSpellName(e.currentTarget.value)} onKeyDown={handleSpellKeyDown} />
                   <button class="compendium-search-btn" onClick={searchSpell}>🔍</button>
                 </div>
                 {spellLoading() && <p class="compendium-status">Поиск...</p>}
@@ -376,17 +338,12 @@ export function App() {
               </div>
             )}
           </div>
-
           <div class="chat">
             <h2 class="chat-title">Чат</h2>
             <div class="chat-messages" ref={(el) => (chatContainer = el)}>
               {messages().length === 0 && <p class="chat-empty">Сообщений пока нет</p>}
               {messages().map((msg) => (
-                <div class="chat-message">
-                  <span class="chat-sender">{msg.sender}</span>
-                  <span class="chat-time">{msg.time}</span>
-                  <p class="chat-text">{msg.text}</p>
-                </div>
+                <div class="chat-message"><span class="chat-sender">{msg.sender}</span><span class="chat-time">{msg.time}</span><p class="chat-text">{msg.text}</p></div>
               ))}
             </div>
             <div class="chat-dice">
