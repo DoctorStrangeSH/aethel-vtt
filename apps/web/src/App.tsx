@@ -9,11 +9,27 @@ interface ChatMessage {
   time: string;
 }
 
+interface SpellResult {
+  name: string;
+  level: number;
+  school: string;
+  casting_time: string;
+  range: string;
+  components: string[];
+  duration: string;
+  description: string;
+}
+
 export function App() {
   const [tokens, setTokens] = createSignal<TokenState[]>([]);
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [messages, setMessages] = createSignal<ChatMessage[]>([]);
   const [inputText, setInputText] = createSignal('');
+  const [spellName, setSpellName] = createSignal('');
+  const [spellResult, setSpellResult] = createSignal<SpellResult | null>(null);
+  const [spellLoading, setSpellLoading] = createSignal(false);
+  const [spellError, setSpellError] = createSignal('');
+  const [showCompendium, setShowCompendium] = createSignal(false);
   let nextMessageId = 1;
   let chatContainer: HTMLDivElement | undefined;
 
@@ -125,6 +141,49 @@ export function App() {
     });
   };
 
+  const searchSpell = async () => {
+    const name = spellName().trim();
+    if (!name) return;
+
+    setSpellLoading(true);
+    setSpellError('');
+    setSpellResult(null);
+
+    try {
+      const response = await fetch(`https://www.dnd5eapi.co/api/spells/${name.toLowerCase().replace(/ /g, '-')}`);
+
+      if (!response.ok) {
+        setSpellError('Заклинание не найдено');
+        setSpellLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      setSpellResult({
+        name: data.name,
+        level: data.level,
+        school: data.school?.name || 'Неизвестно',
+        casting_time: data.casting_time || '—',
+        range: data.range || '—',
+        components: data.components || [],
+        duration: data.duration || '—',
+        description: data.desc?.join('\n') || 'Нет описания',
+      });
+    } catch {
+      setSpellError('Ошибка соединения с API');
+    }
+
+    setSpellLoading(false);
+  };
+
+  const handleSpellKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      searchSpell();
+    }
+  };
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -215,6 +274,57 @@ export function App() {
         </div>
 
         <div class="right-column">
+          {/* Компендиум */}
+          <div class="compendium">
+            <div class="compendium-header">
+              <h2 class="compendium-title">📖 Заклинания</h2>
+              <button
+                class="compendium-toggle"
+                onClick={() => setShowCompendium(!showCompendium())}
+              >
+                {showCompendium() ? 'Скрыть' : 'Поиск'}
+              </button>
+            </div>
+
+            {showCompendium() && (
+              <div class="compendium-body">
+                <div class="compendium-search">
+                  <input
+                    class="compendium-input"
+                    type="text"
+                    placeholder="Название заклинания (на англ.)..."
+                    value={spellName()}
+                    onInput={(e) => setSpellName(e.currentTarget.value)}
+                    onKeyDown={handleSpellKeyDown}
+                  />
+                  <button class="compendium-search-btn" onClick={searchSpell}>
+                    🔍
+                  </button>
+                </div>
+
+                {spellLoading() && <p class="compendium-status">Поиск...</p>}
+                {spellError() && <p class="compendium-error">{spellError()}</p>}
+
+                {spellResult() && (
+                  <div class="spell-card">
+                    <h3 class="spell-name">{spellResult()!.name}</h3>
+                    <p class="spell-meta">
+                      Уровень {spellResult()!.level} • {spellResult()!.school}
+                    </p>
+                    <p class="spell-detail">⏱ {spellResult()!.casting_time}</p>
+                    <p class="spell-detail">📏 {spellResult()!.range}</p>
+                    <p class="spell-detail">
+                      🧪 {spellResult()!.components.join(', ') || '—'}
+                    </p>
+                    <p class="spell-detail">⏳ {spellResult()!.duration}</p>
+                    <p class="spell-desc">{spellResult()!.description}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Чат */}
           <div class="chat">
             <h2 class="chat-title">Чат</h2>
 

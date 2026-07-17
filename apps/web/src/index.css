@@ -228,6 +228,133 @@ h1 {
   background: #3da882;
 }
 
+/* Компендиум */
+.compendium {
+  background: #16213e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.compendium-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.compendium-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
+}
+
+.compendium-toggle {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #aaa;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.compendium-toggle:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.compendium-body {
+  padding: 14px 18px;
+}
+
+.compendium-search {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.compendium-input {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #eee;
+  outline: none;
+}
+
+.compendium-input:focus {
+  border-color: #e94560;
+}
+
+.compendium-input::placeholder {
+  color: #555;
+  font-size: 12px;
+}
+
+.compendium-search-btn {
+  padding: 8px 12px;
+  font-size: 14px;
+  background: #e94560;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.compendium-search-btn:hover {
+  background: #c73b54;
+}
+
+.compendium-status {
+  font-size: 13px;
+  color: #888;
+}
+
+.compendium-error {
+  font-size: 13px;
+  color: #e94560;
+}
+
+.spell-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.spell-name {
+  font-size: 16px;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.spell-meta {
+  font-size: 12px;
+  color: #f0a500;
+  margin-bottom: 10px;
+}
+
+.spell-detail {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 2px;
+}
+
+.spell-desc {
+  font-size: 13px;
+  color: #ccc;
+  margin-top: 8px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
 /* Чат */
 .chat {
   background: #16213e;
@@ -236,7 +363,7 @@ h1 {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 420px;
+  height: 380px;
 }
 
 .chat-title {
