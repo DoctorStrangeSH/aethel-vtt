@@ -1,7 +1,7 @@
 import { createSignal, onCleanup, onMount } from 'solid-js';
 import { engine } from '@aethel/engine';
 import type { TokenState } from '@aethel/shared';
-import { supabase, subscribeToCampaign, saveCampaign, loginWithGitHub, loginWithEmail, registerWithEmail, logoutUser, onUserChanged } from './supabase';
+import { supabase, subscribeToCampaign, saveCampaign, loginWithGitHub, loginWithEmail, registerWithEmail, logoutUser, onUserChanged, uploadMap } from './supabase';
 
 interface ChatMessage {
   id: number;
@@ -36,6 +36,9 @@ export function App() {
   const [email, setEmail] = createSignal('');
   const [password, setPassword] = createSignal('');
   const [isRegister, setIsRegister] = createSignal(false);
+  const [authMessage, setAuthMessage] = createSignal('');
+  const [authIsError, setAuthIsError] = createSignal(false);
+  const [mapUrl, setMapUrl] = createSignal<string | null>(null);
   let chatContainer: HTMLDivElement | undefined;
   let canvasRef: HTMLCanvasElement | undefined;
   let isDragging = false;
@@ -53,23 +56,85 @@ export function App() {
     setTimeout(() => { isLocalChange = false; }, 500);
   };
 
-  const showEmailLogin = () => setShowEmailForm(true);
+  const showEmailLogin = () => {
+    setShowEmailForm(true);
+    setAuthMessage('');
+    setAuthIsError(false);
+    setEmail('');
+    setPassword('');
+    setIsRegister(false);
+  };
+
+  const showEmailRegister = () => {
+    setShowEmailForm(true);
+    setAuthMessage('');
+    setAuthIsError(false);
+    setEmail('');
+    setPassword('');
+    setIsRegister(true);
+  };
 
   const handleEmailAuth = async () => {
+    setAuthMessage('');
+    setAuthIsError(false);
+
+    const pass = password();
+    if (pass.length < 6) {
+      setAuthMessage('Пароль должен быть не менее 6 символов');
+      setAuthIsError(true);
+      return;
+    }
+
     try {
       if (isRegister()) {
-        await registerWithEmail(email(), password());
+        const { error } = await registerWithEmail(email(), password());
+        if (error) {
+          if (error.message.includes('already registered') || error.message.includes('already exists')) {
+            setAuthMessage('Эта почта уже зарегистрирована');
+          } else {
+            setAuthMessage(error.message);
+          }
+          setAuthIsError(true);
+        } else {
+          setAuthMessage('✅ Регистрация успешна! Проверьте почту для подтверждения.');
+          setAuthIsError(false);
+        }
       } else {
-        await loginWithEmail(email(), password());
+        const { error } = await loginWithEmail(email(), password());
+        if (error) {
+          if (error.message.includes('Invalid login credentials') || error.message.includes('invalid')) {
+            setAuthMessage('Неверная почта или пароль');
+          } else if (error.message.includes('Email not confirmed')) {
+            setAuthMessage('Почта не подтверждена. Проверьте почтовый ящик.');
+          } else {
+            setAuthMessage(error.message);
+          }
+          setAuthIsError(true);
+        } else {
+          setShowEmailForm(false);
+          setAuthMessage('');
+        }
       }
-      setShowEmailForm(false);
     } catch (e: any) {
-      alert(e.message);
+      setAuthMessage(e.message || 'Произошла ошибка');
+      setAuthIsError(true);
+    }
+  };
+
+  const handleMapUpload = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadMap(file);
+      setMapUrl(url);
+      drawCanvas();
+    } catch (err: any) {
+      alert('Ошибка загрузки карты: ' + err.message);
     }
   };
 
   onMount(() => {
-    // Колбэк от GitHub OAuth
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
         setUser({
@@ -79,12 +144,10 @@ export function App() {
       }
     });
 
-    // Авторизация
     const unsubAuth = onUserChanged((u) => {
       setUser(u ? { login: u.name || u.email || 'Игрок', avatar_url: u.avatar || '' } : null);
     });
 
-    // Подписка на кампанию
     const unsubCampaign = subscribeToCampaign((data) => {
       if (isLocalChange) return;
       if (data) {
@@ -107,7 +170,6 @@ export function App() {
       }
     });
 
-    // Локальные изменения → Supabase
     const unsubEngine = engine.onUpdate(() => {
       setTokens(engine.getTokens());
       drawCanvas();
@@ -130,7 +192,22 @@ export function App() {
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    const map = mapUrl();
+    if (map) {
+      const img = new Image();
+      img.src = map;
+      if (img.complete) {
+        ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H);
+      } else {
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H);
+          drawCanvas();
+        };
+        return;
+      }
+    }
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 1;
     for (let x = 0; x < CANVAS_W; x += 40) {
       ctx.beginPath();
@@ -309,6 +386,7 @@ export function App() {
         ) : (
           <div class="auth-buttons">
             <button class="user-login" onClick={loginWithGitHub}>Войти через GitHub</button>
+            <button class="user-login" onClick={showEmailRegister}>Регистрация</button>
             <button class="user-login" onClick={showEmailLogin}>Войти по почте</button>
           </div>
         )}
@@ -318,12 +396,19 @@ export function App() {
         <div class="modal-overlay" onClick={() => setShowEmailForm(false)}>
           <form class="modal" onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); handleEmailAuth(); }}>
             <h3>{isRegister() ? 'Регистрация' : 'Вход'}</h3>
+
+            {authMessage() && (
+              <div class={`auth-message ${authIsError() ? 'auth-error' : 'auth-success'}`}>
+                {authMessage()}
+              </div>
+            )}
+
             <input
               class="compendium-input"
               type="email"
               placeholder="Email"
               value={email()}
-              onInput={(e) => setEmail(e.currentTarget.value)}
+              onInput={(e) => { setEmail(e.currentTarget.value); setAuthMessage(''); }}
               autocomplete="email"
             />
             <input
@@ -331,14 +416,14 @@ export function App() {
               type="password"
               placeholder="Пароль (минимум 6 символов)"
               value={password()}
-              onInput={(e) => setPassword(e.currentTarget.value)}
+              onInput={(e) => { setPassword(e.currentTarget.value); setAuthMessage(''); }}
               autocomplete="current-password"
               minlength="6"
             />
             <button class="action-btn heal" type="submit">
               {isRegister() ? 'Зарегистрироваться' : 'Войти'}
             </button>
-            <p class="auth-toggle" onClick={() => setIsRegister(!isRegister())}>
+            <p class="auth-toggle" onClick={() => { setIsRegister(!isRegister()); setAuthMessage(''); }}>
               {isRegister() ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
             </p>
           </form>
@@ -347,6 +432,17 @@ export function App() {
 
       <div class="layout">
         <div class="left-column">
+          <div class="map-controls">
+            <label class="map-upload-btn">
+              🗺 Загрузить карту
+              <input type="file" accept="image/*" onChange={handleMapUpload} hidden />
+            </label>
+            {mapUrl() && (
+              <button class="map-remove-btn" onClick={() => { setMapUrl(null); drawCanvas(); }}>
+                ✕ Убрать карту
+              </button>
+            )}
+          </div>
           <div class="minimap-container">
             <canvas
               ref={(el) => (canvasRef = el)}

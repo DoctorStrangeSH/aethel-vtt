@@ -5,11 +5,9 @@ const supabaseKey = 'sb_publishable_wTGTqQ8fC50Ac6sDX-vyVA_r3bu57f-';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Подписка на кампанию в реальном времени
 export function subscribeToCampaign(
   callback: (data: { tokens: any[]; messages: any[] } | null) => void
 ) {
-  // Начальная загрузка
   supabase
     .from('campaigns')
     .select('*')
@@ -20,7 +18,6 @@ export function subscribeToCampaign(
       else callback(null);
     });
 
-  // Realtime подписка
   const channel = supabase
     .channel('campaign-changes')
     .on(
@@ -38,7 +35,6 @@ export function subscribeToCampaign(
   };
 }
 
-// Сохранение кампании
 export async function saveCampaign(data: { tokens: any[]; messages: any[] }) {
   await supabase
     .from('campaigns')
@@ -50,7 +46,6 @@ export async function saveCampaign(data: { tokens: any[]; messages: any[] }) {
     });
 }
 
-// Auth
 export function loginWithGitHub() {
   supabase.auth.signInWithOAuth({
     provider: 'github',
@@ -59,11 +54,11 @@ export function loginWithGitHub() {
 }
 
 export async function loginWithEmail(email: string, password: string) {
-  return supabase.auth.signInWithPassword({ email, password });
+  return await supabase.auth.signInWithPassword({ email, password });
 }
 
 export async function registerWithEmail(email: string, password: string) {
-  return supabase.auth.signUp({ email, password });
+  return await supabase.auth.signUp({ email, password });
 }
 
 export function logoutUser() {
@@ -87,4 +82,19 @@ export function onUserChanged(callback: (user: { uid: string; email: string | nu
   return () => {
     data.subscription.unsubscribe();
   };
+}
+
+export async function uploadMap(file: File): Promise<string> {
+  const fileName = `map-${Date.now()}.${file.name.split('.').pop()}`;
+  const { data, error } = await supabase.storage
+    .from('maps')
+    .upload(fileName, file, { upsert: true });
+
+  if (error) throw error;
+
+  const { data: urlData } = supabase.storage
+    .from('maps')
+    .getPublicUrl(data.path);
+
+  return urlData.publicUrl;
 }

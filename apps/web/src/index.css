@@ -76,7 +76,7 @@ h1 {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -85,7 +85,7 @@ h1 {
 
 .modal {
   background: #16213e;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 24px;
   width: 320px;
@@ -114,12 +114,68 @@ h1 {
   color: #e94560;
 }
 
+.auth-message {
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.auth-error {
+  background: rgba(233, 69, 96, 0.15);
+  color: #e94560;
+  border: 1px solid rgba(233, 69, 96, 0.3);
+}
+
+.auth-success {
+  background: rgba(78, 204, 163, 0.15);
+  color: #4ecca3;
+  border: 1px solid rgba(78, 204, 163, 0.3);
+}
+
 /* Двухколоночный layout */
 .layout {
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 20px;
   align-items: start;
+}
+
+.map-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.map-upload-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.map-upload-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.map-remove-btn {
+  padding: 8px 14px;
+  font-size: 12px;
+  background: transparent;
+  color: #e94560;
+  border: 1px solid rgba(233, 69, 96, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.map-remove-btn:hover {
+  background: rgba(233, 69, 96, 0.1);
 }
 
 /* Миникарта */
