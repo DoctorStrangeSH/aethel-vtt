@@ -4,13 +4,13 @@ import type { TokenState } from '@aethel/shared';
 
 export function App() {
   const [tokens, setTokens] = createSignal<TokenState[]>([]);
+  const [activeIndex, setActiveIndex] = createSignal(0);
 
   onMount(() => {
     const unsubscribe = engine.onUpdate((updatedTokens) => {
       setTokens(updatedTokens);
     });
 
-    // Добавляем тестовые токены
     engine.addToken({
       id: 'hero-1',
       position: { x: 100, y: 200 },
@@ -63,16 +63,36 @@ export function App() {
     return '#e94560';
   };
 
+  const nextTurn = () => {
+    setActiveIndex((prev) => (prev + 1) % tokens().length);
+  };
+
+  const selectToken = (index: number) => {
+    setActiveIndex(index);
+  };
+
   return (
     <div class="app">
       <h1>Aethel VTT</h1>
 
       <div class="tracker">
-        <h2 class="tracker-title">Combat Tracker</h2>
+        <div class="tracker-header">
+          <h2 class="tracker-title">Combat Tracker</h2>
+          <button class="next-turn-btn" onClick={nextTurn}>
+            Следующий ход →
+          </button>
+        </div>
 
         <ul class="tracker-list">
-          {tokens().map((token) => (
-            <li class="tracker-item">
+          {tokens().map((token, index) => (
+            <li
+              class={`tracker-item ${index === activeIndex() ? 'active' : ''}`}
+              onClick={() => selectToken(index)}
+            >
+              <div class="turn-indicator">
+                {index === activeIndex() ? '▶' : ''}
+              </div>
+
               <div class="token-icon">
                 <div class="icon-placeholder" />
               </div>

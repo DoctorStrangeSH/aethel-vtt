@@ -31,13 +31,34 @@ h1 {
   overflow: hidden;
 }
 
+.tracker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .tracker-title {
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #888;
-  padding: 14px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.next-turn-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  background: #e94560;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.next-turn-btn:hover {
+  background: #c73b54;
 }
 
 .tracker-list {
@@ -51,10 +72,24 @@ h1 {
   padding: 12px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   transition: background 0.15s;
+  cursor: pointer;
 }
 
 .tracker-item:hover {
   background: rgba(255, 255, 255, 0.03);
+}
+
+.tracker-item.active {
+  background: rgba(233, 69, 96, 0.1);
+  border-left: 3px solid #e94560;
+}
+
+/* Индикатор хода */
+.turn-indicator {
+  width: 20px;
+  font-size: 14px;
+  color: #e94560;
+  flex-shrink: 0;
 }
 
 /* Иконка токена */
