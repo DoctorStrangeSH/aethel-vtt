@@ -104,3 +104,29 @@ h1 { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 24px; letter
 .chat-input::placeholder { color: #555; }
 .chat-send-btn { padding: 9px 14px; font-size: 16px; background: #e94560; color: #fff; border: none; border-radius: 8px; cursor: pointer; }
 .chat-send-btn:hover { background: #c73b54; }
+
+/* Модалка кубиков */
+.modal-dice { width: 340px; }
+
+.dice-panel { display: flex; flex-direction: column; gap: 10px; }
+
+.dice-row { display: flex; align-items: center; gap: 10px; }
+.dice-row span { font-size: 14px; color: #aaa; min-width: 100px; }
+.dice-row .input { margin-bottom: 0; }
+
+.dice-result { text-align: center; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 12px; margin-top: 8px; }
+.dice-total { font-size: 48px; font-weight: 700; color: #e94560; display: block; line-height: 1; }
+.dice-parts { font-size: 13px; color: #888; margin-top: 4px; display: block; }
+
+/* Лист персонажа */
+.modal-sheet { width: 420px; max-height: 80vh; overflow-y: auto; }
+
+.sheet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sheet-stat { display: flex; align-items: center; gap: 8px; }
+.sheet-stat span { font-size: 13px; color: #aaa; min-width: 100px; }
+.sheet-stat .input { margin-bottom: 0; flex: 1; }
+
+.inv-list { list-style: none; }
+.inv-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
+
+.ai-menu { display: flex; gap: 4px; flex-wrap: wrap; padding: 0 0 8px 0; }

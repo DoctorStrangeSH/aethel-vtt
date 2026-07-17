@@ -5,6 +5,23 @@ export interface Vector2 {
   y: number;
 }
 
+export interface CharacterStats {
+  strength: number;
+  dexterity: number;
+  constitution: number;
+  intelligence: number;
+  wisdom: number;
+  charisma: number;
+  ac: number;
+  speed: number;
+}
+
+export interface InventoryItem {
+  name: string;
+  quantity: number;
+  weight: number;
+}
+
 export interface TokenState {
   id: string;
   position: Vector2;
@@ -15,6 +32,8 @@ export interface TokenState {
   maxHp: number;
   ownerId: string | null;
   lockedBy: string | null;
+  stats?: CharacterStats;
+  inventory?: InventoryItem[];
 }
 
 export interface LightSource {
