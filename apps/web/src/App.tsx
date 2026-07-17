@@ -173,6 +173,18 @@ export function App() {
     dragTokenId = null;
   };
 
+  const handleCanvasDoubleClick = (e: MouseEvent) => {
+    const { x, y } = canvasToLocal(e.clientX, e.clientY);
+    const token = getTokenAt(x, y);
+    if (token) {
+      const list = engine.getTokens();
+      const idx = list.findIndex((t) => t.id === token.id);
+      if (idx >= 0) {
+        setActiveIndex(idx);
+      }
+    }
+  };
+
   const hpPercent = (token: TokenState) => {
     return Math.round((token.hp / token.maxHp) * 100);
   };
@@ -290,6 +302,7 @@ export function App() {
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseUp}
+              onDblClick={handleCanvasDoubleClick}
             />
           </div>
 
