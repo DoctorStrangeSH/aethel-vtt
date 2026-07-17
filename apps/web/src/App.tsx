@@ -22,42 +22,6 @@ export function App() {
       setTokens(updatedTokens);
     });
 
-    engine.addToken({
-      id: 'hero-1',
-      position: { x: 100, y: 200 },
-      rotation: 0,
-      hidden: false,
-      conditions: [],
-      hp: 45,
-      maxHp: 52,
-      ownerId: 'player-1',
-      lockedBy: null,
-    });
-
-    engine.addToken({
-      id: 'goblin-1',
-      position: { x: 300, y: 250 },
-      rotation: 180,
-      hidden: false,
-      conditions: [],
-      hp: 7,
-      maxHp: 7,
-      ownerId: null,
-      lockedBy: null,
-    });
-
-    engine.addToken({
-      id: 'goblin-2',
-      position: { x: 320, y: 220 },
-      rotation: 90,
-      hidden: false,
-      conditions: ['poisoned'],
-      hp: 3,
-      maxHp: 7,
-      ownerId: null,
-      lockedBy: null,
-    });
-
     onCleanup(() => {
       unsubscribe();
     });
@@ -75,14 +39,20 @@ export function App() {
   };
 
   const nextTurn = () => {
-    setActiveIndex((prev) => (prev + 1) % tokens().length);
+    const list = tokens();
+    if (list.length === 0) return;
+    setActiveIndex((prev) => (prev + 1) % list.length);
   };
 
   const selectToken = (index: number) => {
     setActiveIndex(index);
   };
 
-  const activeToken = () => tokens()[activeIndex()];
+  const activeToken = () => {
+    const list = tokens();
+    if (list.length === 0) return undefined;
+    return list[activeIndex()];
+  };
 
   const damageActive = () => {
     const token = activeToken();
@@ -136,6 +106,25 @@ export function App() {
     }
   };
 
+  const addRandomToken = () => {
+    const names = ['Гоблин', 'Орк', 'Скелет', 'Волк', 'Бандит', 'Зомби', 'Крыса'];
+    const name = names[Math.floor(Math.random() * names.length)];
+    const id = `${name.toLowerCase()}-${Date.now()}`;
+    const hp = Math.floor(Math.random() * 20) + 5;
+
+    engine.addToken({
+      id,
+      position: { x: 0, y: 0 },
+      rotation: 0,
+      hidden: false,
+      conditions: [],
+      hp,
+      maxHp: hp,
+      ownerId: null,
+      lockedBy: null,
+    });
+  };
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -158,6 +147,9 @@ export function App() {
             </div>
 
             <ul class="tracker-list">
+              {tokens().length === 0 && (
+                <li class="tracker-empty">Нет токенов. Добавьте первого бойца.</li>
+              )}
               {tokens().map((token, index) => (
                 <li
                   class={`tracker-item ${index === activeIndex() ? 'active' : ''}`}
@@ -166,6 +158,17 @@ export function App() {
                   <div class="turn-indicator">
                     {index === activeIndex() ? '▶' : ''}
                   </div>
+
+                  <button
+                    class="token-remove"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      engine.removeToken(token.id);
+                    }}
+                    title="Удалить токен"
+                  >
+                    ✕
+                  </button>
 
                   <div class="token-icon">
                     <div class="icon-placeholder" />
@@ -199,6 +202,9 @@ export function App() {
           </div>
 
           <div class="actions">
+            <button class="action-btn add" onClick={addRandomToken}>
+              ＋ Добавить токен
+            </button>
             <button class="action-btn damage" onClick={damageActive}>
               ⚔ Урон (5)
             </button>

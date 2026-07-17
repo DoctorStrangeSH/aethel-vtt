@@ -73,6 +73,13 @@ h1 {
   list-style: none;
 }
 
+.tracker-empty {
+  padding: 24px 18px;
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+}
+
 .tracker-item {
   display: flex;
   align-items: center;
@@ -97,6 +104,27 @@ h1 {
   font-size: 14px;
   color: #e94560;
   flex-shrink: 0;
+}
+
+.token-remove {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  background: transparent;
+  color: #666;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.token-remove:hover {
+  color: #e94560;
+  background: rgba(233, 69, 96, 0.1);
 }
 
 .token-icon {
@@ -169,6 +197,17 @@ h1 {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.15s;
+}
+
+.action-btn.add {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc;
+  flex: 0.5;
+}
+
+.action-btn.add:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
 }
 
 .action-btn.damage {
@@ -251,6 +290,29 @@ h1 {
   word-break: break-word;
 }
 
+/* Кубики */
+.chat-dice {
+  display: flex;
+  gap: 6px;
+  padding: 0 18px 12px;
+}
+
+.dice-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dice-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
 .chat-input-area {
   display: flex;
   gap: 8px;
@@ -292,27 +354,4 @@ h1 {
 
 .chat-send-btn:hover {
   background: #c73b54;
-}
-
-/* Кубики */
-.chat-dice {
-  display: flex;
-  gap: 6px;
-  padding: 0 18px 12px;
-}
-
-.dice-btn {
-  padding: 6px 12px;
-  font-size: 13px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #ccc;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.dice-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
 }
