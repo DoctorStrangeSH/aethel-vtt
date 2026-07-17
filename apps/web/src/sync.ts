@@ -4,6 +4,7 @@ import type { TokenState } from '@aethel/shared';
 
 export const ydoc = new Y.Doc();
 export const ytokens = ydoc.getMap<TokenState>('tokens');
+export const ymessages = ydoc.getArray<{ id: number; sender: string; text: string; time: string }>('messages');
 export let syncProvider: WebsocketProvider | null = null;
 
 export function connectToRoom(roomId: string) {
@@ -15,6 +16,7 @@ export function connectToRoom(roomId: string) {
   return ydoc;
 }
 
+// Токены: engine -> Yjs
 export function pushTokensToYjs(tokens: TokenState[]) {
   ydoc.transact(() => {
     ytokens.clear();
@@ -24,6 +26,7 @@ export function pushTokensToYjs(tokens: TokenState[]) {
   });
 }
 
+// Токены: Yjs -> engine
 export function onYjsChange(callback: (tokens: TokenState[]) => void) {
   const handler = () => {
     const tokens: TokenState[] = [];
@@ -34,4 +37,18 @@ export function onYjsChange(callback: (tokens: TokenState[]) => void) {
   };
   ytokens.observe(handler);
   return () => ytokens.unobserve(handler);
+}
+
+// Чат: UI -> Yjs
+export function pushMessageToYjs(msg: { id: number; sender: string; text: string; time: string }) {
+  ymessages.push([msg]);
+}
+
+// Чат: Yjs -> UI
+export function onYjsMessages(callback: (messages: { id: number; sender: string; text: string; time: string }[]) => void) {
+  const handler = () => {
+    callback(ymessages.toArray());
+  };
+  ymessages.observe(handler);
+  return () => ymessages.unobserve(handler);
 }

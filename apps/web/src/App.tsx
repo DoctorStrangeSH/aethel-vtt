@@ -1,7 +1,8 @@
 import { createSignal, onCleanup, onMount } from 'solid-js';
 import { engine } from '@aethel/engine';
 import type { TokenState } from '@aethel/shared';
-import { connectToRoom, pushTokensToYjs, onYjsChange, syncProvider } from './sync';
+import { connectToRoom, pushTokensToYjs, onYjsChange, onYjsMessages, pushMessageToYjs, syncProvider } from './sync';
+import { getStoredUser, loginWithGitHub, handleCallback, logout } from './auth';
 
 interface ChatMessage {
   id: number;
@@ -22,6 +23,7 @@ interface SpellResult {
 }
 
 export function App() {
+  const [user, setUser] = createSignal<{ login: string; avatar_url: string } | null>(getStoredUser());
   const [tokens, setTokens] = createSignal<TokenState[]>([]);
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [messages, setMessages] = createSignal<ChatMessage[]>([]);
@@ -31,7 +33,6 @@ export function App() {
   const [spellLoading, setSpellLoading] = createSignal(false);
   const [spellError, setSpellError] = createSignal('');
   const [showCompendium, setShowCompendium] = createSignal(false);
-  let nextMessageId = 1;
   let chatContainer: HTMLDivElement | undefined;
   let canvasRef: HTMLCanvasElement | undefined;
   let isDragging = false;
@@ -40,15 +41,22 @@ export function App() {
   const CANVAS_H = 400;
 
   onMount(() => {
-    // Подключаемся к WebSocket-серверу
+    // Проверяем колбэк от GitHub
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      handleCallback(code).then((u) => {
+        setUser(u);
+        window.history.replaceState({}, '', '/');
+      }).catch(console.error);
+    }
+
     connectToRoom('test-room');
 
-    // Локальные изменения → Yjs
     const unsubEngine = engine.onUpdate((updatedTokens) => {
       pushTokensToYjs(updatedTokens);
     });
 
-    // Изменения из Yjs → engine (без notify) + UI
     const unsubYjs = onYjsChange((yjsTokens) => {
       if (yjsTokens.length === 0) return;
       engine.loadTokens(yjsTokens);
@@ -56,30 +64,22 @@ export function App() {
       drawCanvas();
     });
 
-    // Стартовые токены (только если комната пуста)
+    const unsubMessages = onYjsMessages((ymsgs) => {
+      setMessages(ymsgs);
+    });
+
     if (engine.getTokens().length === 0) {
       engine.addToken({
         id: 'hero-1',
         position: { x: 200, y: 200 },
-        rotation: 0,
-        hidden: false,
-        conditions: [],
-        hp: 45,
-        maxHp: 52,
-        ownerId: 'player-1',
-        lockedBy: null,
+        rotation: 0, hidden: false, conditions: [],
+        hp: 45, maxHp: 52, ownerId: 'player-1', lockedBy: null,
       });
-
       engine.addToken({
         id: 'goblin-1',
         position: { x: 400, y: 150 },
-        rotation: 0,
-        hidden: false,
-        conditions: [],
-        hp: 7,
-        maxHp: 7,
-        ownerId: null,
-        lockedBy: null,
+        rotation: 0, hidden: false, conditions: [],
+        hp: 7, maxHp: 7, ownerId: null, lockedBy: null,
       });
     }
 
@@ -89,6 +89,7 @@ export function App() {
     onCleanup(() => {
       unsubEngine();
       unsubYjs();
+      unsubMessages();
       syncProvider?.disconnect();
     });
   });
@@ -228,17 +229,15 @@ export function App() {
     if (!text) return;
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    setMessages((prev) => [...prev, { id: nextMessageId++, sender: 'DM', text, time }]);
+    pushMessageToYjs({ id: Date.now(), sender: user()?.login || 'Аноним', text, time });
     setInputText('');
-    if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
   };
 
   const rollDice = (sides: number) => {
     const result = Math.floor(Math.random() * sides) + 1;
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    setMessages((prev) => [...prev, { id: nextMessageId++, sender: '🎲', text: `Бросок 1d${sides}: ${result}`, time }]);
-    if (chatContainer) chatContainer.scrollTop = chatContainer.scrollHeight;
+    pushMessageToYjs({ id: Date.now(), sender: '🎲', text: `Бросок 1d${sides}: ${result}`, time });
   };
 
   const addRandomToken = () => {
@@ -268,6 +267,21 @@ export function App() {
   return (
     <div class="app">
       <h1>Aethel VTT</h1>
+
+      <div class="user-bar">
+        {user() ? (
+          <div class="user-info">
+            <img class="user-avatar" src={user()!.avatar_url} alt="" />
+            <span class="user-name">{user()!.login}</span>
+            <button class="user-logout" onClick={() => { logout(); setUser(null); }}>Выйти</button>
+          </div>
+        ) : (
+          <button class="user-login" onClick={loginWithGitHub}>
+            Войти через GitHub
+          </button>
+        )}
+      </div>
+
       <div class="layout">
         <div class="left-column">
           <div class="minimap-container">

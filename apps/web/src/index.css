@@ -23,6 +23,49 @@ h1 {
   margin-bottom: 30px;
 }
 
+.user-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #e94560;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #eee;
+}
+
+.user-logout,
+.user-login {
+  padding: 8px 16px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.user-logout:hover,
+.user-login:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
 /* Двухколоночный layout */
 .layout {
   display: grid;
