@@ -31,6 +31,27 @@ h1 {
   align-items: start;
 }
 
+/* Миникарта */
+.minimap-container {
+  background: #16213e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  line-height: 0;
+}
+
+.minimap-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: grab;
+}
+
+.minimap-canvas:active {
+  cursor: grabbing;
+}
+
 /* Tracker */
 .tracker {
   background: #16213e;
