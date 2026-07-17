@@ -12,6 +12,7 @@
     "@aethel/engine": "workspace:*",
     "@aethel/shared": "workspace:*",
     "@aethel/ui": "workspace:*",
+    "@supabase/supabase-js": "^2.110.6",
     "solid-js": "^1.8.0",
     "y-webrtc": "^10.3.0",
     "y-websocket": "^2.1.0",

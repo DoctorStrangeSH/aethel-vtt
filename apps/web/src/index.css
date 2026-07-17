@@ -20,9 +20,10 @@ body {
 h1 {
   font-size: 28px;
   color: #e94560;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
+/* Пользователь */
 .user-bar {
   display: flex;
   justify-content: flex-end;
@@ -64,6 +65,53 @@ h1 {
 .user-login:hover {
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+/* Модальное окно */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: #16213e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 24px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal h3 {
+  color: #fff;
+  font-size: 18px;
+}
+
+.modal .compendium-input {
+  width: 100%;
+}
+
+.auth-toggle {
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.auth-toggle:hover {
+  color: #e94560;
 }
 
 /* Двухколоночный layout */

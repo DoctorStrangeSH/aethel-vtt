@@ -1,8 +1,7 @@
 import { createSignal, onCleanup, onMount } from 'solid-js';
 import { engine } from '@aethel/engine';
 import type { TokenState } from '@aethel/shared';
-import { connectToRoom, pushTokensToYjs, onYjsChange, onYjsMessages, pushMessageToYjs, syncProvider } from './sync';
-import { getStoredUser, loginWithGitHub, handleCallback, logout } from './auth';
+import { supabase, subscribeToCampaign, saveCampaign, loginWithGitHub, loginWithEmail, registerWithEmail, logoutUser, onUserChanged } from './supabase';
 
 interface ChatMessage {
   id: number;
@@ -23,7 +22,7 @@ interface SpellResult {
 }
 
 export function App() {
-  const [user, setUser] = createSignal<{ login: string; avatar_url: string } | null>(getStoredUser());
+  const [user, setUser] = createSignal<{ login: string; avatar_url: string } | null>(null);
   const [tokens, setTokens] = createSignal<TokenState[]>([]);
   const [activeIndex, setActiveIndex] = createSignal(0);
   const [messages, setMessages] = createSignal<ChatMessage[]>([]);
@@ -33,64 +32,92 @@ export function App() {
   const [spellLoading, setSpellLoading] = createSignal(false);
   const [spellError, setSpellError] = createSignal('');
   const [showCompendium, setShowCompendium] = createSignal(false);
+  const [showEmailForm, setShowEmailForm] = createSignal(false);
+  const [email, setEmail] = createSignal('');
+  const [password, setPassword] = createSignal('');
+  const [isRegister, setIsRegister] = createSignal(false);
   let chatContainer: HTMLDivElement | undefined;
   let canvasRef: HTMLCanvasElement | undefined;
   let isDragging = false;
   let dragTokenId: string | null = null;
+  let isLocalChange = false;
   const CANVAS_W = 600;
   const CANVAS_H = 400;
 
+  const saveToFirebase = () => {
+    isLocalChange = true;
+    saveCampaign({
+      tokens: engine.getTokens(),
+      messages: messages(),
+    });
+    setTimeout(() => { isLocalChange = false; }, 500);
+  };
+
+  const showEmailLogin = () => setShowEmailForm(true);
+
+  const handleEmailAuth = async () => {
+    try {
+      if (isRegister()) {
+        await registerWithEmail(email(), password());
+      } else {
+        await loginWithEmail(email(), password());
+      }
+      setShowEmailForm(false);
+    } catch (e: any) {
+      alert(e.message);
+    }
+  };
+
   onMount(() => {
-    // Проверяем колбэк от GitHub
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    if (code) {
-      handleCallback(code).then((u) => {
-        setUser(u);
-        window.history.replaceState({}, '', '/');
-      }).catch(console.error);
-    }
-
-    connectToRoom('test-room');
-
-    const unsubEngine = engine.onUpdate((updatedTokens) => {
-      pushTokensToYjs(updatedTokens);
+    // Колбэк от GitHub OAuth
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        setUser({
+          login: data.session.user.user_metadata?.full_name || data.session.user.email?.split('@')[0] || 'Игрок',
+          avatar_url: data.session.user.user_metadata?.avatar_url || '',
+        });
+      }
     });
 
-    const unsubYjs = onYjsChange((yjsTokens) => {
-      if (yjsTokens.length === 0) return;
-      engine.loadTokens(yjsTokens);
-      setTokens(yjsTokens);
+    // Авторизация
+    const unsubAuth = onUserChanged((u) => {
+      setUser(u ? { login: u.name || u.email || 'Игрок', avatar_url: u.avatar || '' } : null);
+    });
+
+    // Подписка на кампанию
+    const unsubCampaign = subscribeToCampaign((data) => {
+      if (isLocalChange) return;
+      if (data) {
+        const t = (data.tokens as TokenState[]) || [];
+        const m = (data.messages as ChatMessage[]) || [];
+        engine.loadTokens(t);
+        setTokens(t);
+        setMessages(m);
+        drawCanvas();
+      } else {
+        engine.addToken({
+          id: 'hero-1', position: { x: 200, y: 200 }, rotation: 0,
+          hidden: false, conditions: [], hp: 45, maxHp: 52, ownerId: 'player-1', lockedBy: null,
+        });
+        engine.addToken({
+          id: 'goblin-1', position: { x: 400, y: 150 }, rotation: 0,
+          hidden: false, conditions: [], hp: 7, maxHp: 7, ownerId: null, lockedBy: null,
+        });
+        saveToFirebase();
+      }
+    });
+
+    // Локальные изменения → Supabase
+    const unsubEngine = engine.onUpdate(() => {
+      setTokens(engine.getTokens());
       drawCanvas();
+      saveToFirebase();
     });
-
-    const unsubMessages = onYjsMessages((ymsgs) => {
-      setMessages(ymsgs);
-    });
-
-    if (engine.getTokens().length === 0) {
-      engine.addToken({
-        id: 'hero-1',
-        position: { x: 200, y: 200 },
-        rotation: 0, hidden: false, conditions: [],
-        hp: 45, maxHp: 52, ownerId: 'player-1', lockedBy: null,
-      });
-      engine.addToken({
-        id: 'goblin-1',
-        position: { x: 400, y: 150 },
-        rotation: 0, hidden: false, conditions: [],
-        hp: 7, maxHp: 7, ownerId: null, lockedBy: null,
-      });
-    }
-
-    setTokens(engine.getTokens());
-    drawCanvas();
 
     onCleanup(() => {
+      unsubAuth();
+      unsubCampaign();
       unsubEngine();
-      unsubYjs();
-      unsubMessages();
-      syncProvider?.disconnect();
     });
   });
 
@@ -229,15 +256,19 @@ export function App() {
     if (!text) return;
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    pushMessageToYjs({ id: Date.now(), sender: user()?.login || 'Аноним', text, time });
+    const newMsg = { id: Date.now(), sender: user()?.login || 'Аноним', text, time };
+    setMessages((prev) => [...prev, newMsg]);
     setInputText('');
+    saveToFirebase();
   };
 
   const rollDice = (sides: number) => {
     const result = Math.floor(Math.random() * sides) + 1;
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    pushMessageToYjs({ id: Date.now(), sender: '🎲', text: `Бросок 1d${sides}: ${result}`, time });
+    const newMsg = { id: Date.now(), sender: '🎲', text: `Бросок 1d${sides}: ${result}`, time };
+    setMessages((prev) => [...prev, newMsg]);
+    saveToFirebase();
   };
 
   const addRandomToken = () => {
@@ -271,16 +302,48 @@ export function App() {
       <div class="user-bar">
         {user() ? (
           <div class="user-info">
-            <img class="user-avatar" src={user()!.avatar_url} alt="" />
+            <img class="user-avatar" src={user()!.avatar_url || ''} alt="" />
             <span class="user-name">{user()!.login}</span>
-            <button class="user-logout" onClick={() => { logout(); setUser(null); }}>Выйти</button>
+            <button class="user-logout" onClick={() => { logoutUser(); setUser(null); }}>Выйти</button>
           </div>
         ) : (
-          <button class="user-login" onClick={loginWithGitHub}>
-            Войти через GitHub
-          </button>
+          <div class="auth-buttons">
+            <button class="user-login" onClick={loginWithGitHub}>Войти через GitHub</button>
+            <button class="user-login" onClick={showEmailLogin}>Войти по почте</button>
+          </div>
         )}
       </div>
+
+      {showEmailForm() && (
+        <div class="modal-overlay" onClick={() => setShowEmailForm(false)}>
+          <form class="modal" onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); handleEmailAuth(); }}>
+            <h3>{isRegister() ? 'Регистрация' : 'Вход'}</h3>
+            <input
+              class="compendium-input"
+              type="email"
+              placeholder="Email"
+              value={email()}
+              onInput={(e) => setEmail(e.currentTarget.value)}
+              autocomplete="email"
+            />
+            <input
+              class="compendium-input"
+              type="password"
+              placeholder="Пароль (минимум 6 символов)"
+              value={password()}
+              onInput={(e) => setPassword(e.currentTarget.value)}
+              autocomplete="current-password"
+              minlength="6"
+            />
+            <button class="action-btn heal" type="submit">
+              {isRegister() ? 'Зарегистрироваться' : 'Войти'}
+            </button>
+            <p class="auth-toggle" onClick={() => setIsRegister(!isRegister())}>
+              {isRegister() ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
+            </p>
+          </form>
+        </div>
+      )}
 
       <div class="layout">
         <div class="left-column">
