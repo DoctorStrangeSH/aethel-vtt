@@ -12,7 +12,7 @@ body {
 }
 
 .app {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 40px 20px;
 }
@@ -20,26 +20,97 @@ body {
 h1 {
   font-size: 28px;
   color: #e94560;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
-p {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #ccc;
+/* Tracker */
+.tracker {
+  background: #16213e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-button {
-  margin-top: 10px;
-  padding: 10px 20px;
-  font-size: 16px;
-  background: #e94560;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+.tracker-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-button:hover {
-  background: #c73b54;
+.tracker-list {
+  list-style: none;
+}
+
+.tracker-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.15s;
+}
+
+.tracker-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Иконка токена */
+.token-icon {
+  flex-shrink: 0;
+}
+
+.icon-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Инфо */
+.token-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.token-name {
+  font-size: 15px;
+  font-weight: 500;
+  display: block;
+}
+
+.token-conditions {
+  font-size: 12px;
+  color: #f0a500;
+  display: block;
+  margin-top: 2px;
+}
+
+/* HP бар */
+.token-hp-bar {
+  width: 80px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.token-hp-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s, background-color 0.3s;
+}
+
+/* HP текст */
+.token-hp-text {
+  font-size: 13px;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+  color: #aaa;
+  width: 60px;
+  text-align: right;
+  flex-shrink: 0;
 }
