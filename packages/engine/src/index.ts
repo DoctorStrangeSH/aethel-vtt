@@ -26,6 +26,22 @@ export class GameEngine {
     }
   }
 
+  damageToken(id: string, amount: number): void {
+    const token = this.tokens.get(id);
+    if (token) {
+      token.hp = Math.max(0, token.hp - amount);
+      this.notify();
+    }
+  }
+
+  healToken(id: string, amount: number): void {
+    const token = this.tokens.get(id);
+    if (token) {
+      token.hp = Math.min(token.maxHp, token.hp + amount);
+      this.notify();
+    }
+  }
+
   getTokens(): TokenState[] {
     return Array.from(this.tokens.values());
   }
