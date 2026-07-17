@@ -1,0 +1,19 @@
+{
+  "name": "aethel-vtt",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
+  },
+  "packageManager": "pnpm@11.13.1",
+  "engines": {
+    "node": ">=20"
+  }
+}
