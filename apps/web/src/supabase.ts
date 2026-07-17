@@ -57,8 +57,14 @@ export async function loginWithEmail(email: string, password: string) {
   return await supabase.auth.signInWithPassword({ email, password });
 }
 
-export async function registerWithEmail(email: string, password: string) {
-  return await supabase.auth.signUp({ email, password });
+export async function registerWithEmail(email: string, password: string, displayName?: string) {
+  return await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: displayName || email.split('@')[0] },
+    },
+  });
 }
 
 export function logoutUser() {

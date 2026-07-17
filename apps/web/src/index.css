@@ -650,3 +650,101 @@ h1 {
 .chat-send-btn:hover {
   background: #c73b54;
 }
+
+/* Табы авторизации */
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.auth-tab {
+  flex: 1;
+  padding: 10px;
+  font-size: 14px;
+  background: transparent;
+  color: #888;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.auth-tab.active {
+  background: #e94560;
+  color: #fff;
+}
+
+.auth-tab:hover:not(.active) {
+  color: #ccc;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.auth-divider {
+  text-align: center;
+  color: #666;
+  font-size: 12px;
+  margin: 14px 0;
+  position: relative;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 35%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.auth-divider::before {
+  left: 0;
+}
+
+.auth-divider::after {
+  right: 0;
+}
+
+.github-btn {
+  width: 100%;
+  background: #24292e !important;
+  color: #fff !important;
+}
+
+.github-btn:hover {
+  background: #2f363d !important;
+}
+
+.user-login-accent {
+  background: #e94560 !important;
+  color: #fff !important;
+  border-color: #e94560 !important;
+}
+
+.user-login-accent:hover {
+  background: #c73b54 !important;
+}
+
+/* Сообщения */
+.auth-message {
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.auth-error {
+  background: rgba(233, 69, 96, 0.15);
+  color: #e94560;
+  border: 1px solid rgba(233, 69, 96, 0.3);
+}
+
+.auth-success {
+  background: rgba(78, 204, 163, 0.15);
+  color: #4ecca3;
+  border: 1px solid rgba(78, 204, 163, 0.3);
+}
